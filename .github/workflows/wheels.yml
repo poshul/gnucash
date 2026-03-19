@@ -57,8 +57,15 @@ jobs:
           CIBW_MANYLINUX_X86_64_IMAGE: quay.io/pypa/manylinux_2_34_x86_64
           CIBW_MANYLINUX_AARCH64_IMAGE: quay.io/pypa/manylinux_2_34_aarch64
           CIBW_BEFORE_ALL_LINUX: bash {package}/install-linux-deps.sh
+          CIBW_REPAIR_WHEEL_COMMAND_LINUX: >-
+            python3 -m pip install -q --upgrade "auditwheel>=6.1" "pyelftools>=0.31" &&
+            python3 -m auditwheel repair -w {dest_dir} {wheel}
           CIBW_BEFORE_ALL_MACOS: bash {package}/install-macos-deps.sh
           CIBW_ENVIRONMENT_MACOS: >-
+            CC=/usr/bin/clang
+            CXX=/usr/bin/clang++
+            MACOSX_DEPLOYMENT_TARGET=15.0
+            CMAKE_OSX_DEPLOYMENT_TARGET=15.0
             ICU_ROOT=$(brew --prefix icu4c)
             CFLAGS="-I$(brew --prefix icu4c)/include $CFLAGS"
             CXXFLAGS="-I$(brew --prefix icu4c)/include $CXXFLAGS"
