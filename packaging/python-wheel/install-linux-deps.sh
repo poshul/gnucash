@@ -35,7 +35,7 @@ if command -v dnf >/dev/null 2>&1; then
     gettext \
     glib2-devel \
     guile30-devel \
-    icu-devel \
+    libicu-devel \
     libxml2-devel \
     libxslt-devel \
     make \
