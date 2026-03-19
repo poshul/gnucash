@@ -35,11 +35,13 @@ if command -v dnf >/dev/null 2>&1; then
     gcc-c++ \
     gettext \
     glib2-devel \
+    gmock-devel \
     gtest-devel \
     guile30-devel \
     libicu-devel \
     libxml2-devel \
     libxslt-devel \
+    libxslt \
     make \
     ninja-build \
     pkgconf-pkg-config \
@@ -57,11 +59,13 @@ if command -v yum >/dev/null 2>&1; then
     gcc-c++ \
     gettext \
     glib2-devel \
+    gmock-devel \
     gtest-devel \
     guile30-devel \
     libicu-devel \
     libxml2-devel \
     libxslt-devel \
+    libxslt \
     make \
     ninja-build \
     pkgconfig \
