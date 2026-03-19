@@ -555,6 +555,14 @@ if (WITH_PYTHON)
     # managed Python may not expose a shared libpython (Development.Embed).
     find_package (Python3 ${PYTHON_MIN_VERSION} COMPONENTS Interpreter Development.Module
                   OPTIONAL_COMPONENTS Development.Embed)
+    # Extension modules don't link against libpython — clear the NOTFOUND
+    # variables so CMake doesn't error on targets that reference them.
+    if (NOT Python3_LIBRARY)
+      set(Python3_LIBRARY "" CACHE FILEPATH "" FORCE)
+    endif()
+    if (NOT Python3_LIBRARIES)
+      set(Python3_LIBRARIES "" CACHE STRING "" FORCE)
+    endif()
   else()
     find_package (Python3 ${PYTHON_MIN_VERSION} COMPONENTS Interpreter Development)
   endif()

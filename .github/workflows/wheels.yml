@@ -34,7 +34,7 @@ jobs:
       matrix:
         include:
           - os: ubuntu-24.04
-          - os: macos-13    # Intel — builds x86_64 wheels natively
+          - os: macos-15-intel    # Intel — builds x86_64 wheels natively
             cibw_archs_macos: x86_64
           - os: macos-15    # Apple Silicon — builds arm64 wheels natively
             cibw_archs_macos: arm64
