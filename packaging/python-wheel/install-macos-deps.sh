@@ -12,6 +12,7 @@ brew install \
   cmake \
   gettext \
   glib \
+  googletest \
   guile \
   icu4c \
   libxml2 \

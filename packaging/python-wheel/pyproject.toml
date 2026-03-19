@@ -1,8 +1,6 @@
 [build-system]
 requires = [
   "scikit-build-core>=0.10",
-  "cmake>=3.22",
-  "ninja>=1.10",
 ]
 build-backend = "scikit_build_core.build"
 
@@ -32,7 +30,8 @@ cmake.args = [
   "-DWITH_GNUCASH=OFF",
   "-DWITH_SQL=OFF",
   "-DWITH_AQBANKING=OFF",
-  "-DWITH_OFX=OFF"
+  "-DWITH_OFX=OFF",
+  "-DPython3_FIND_STRATEGY=LOCATION"
 ]
 
 [tool.scikit-build.wheel]

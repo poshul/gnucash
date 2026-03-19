@@ -26,6 +26,7 @@ fi
 
 if command -v dnf >/dev/null 2>&1; then
   dnf -y install epel-release
+  dnf config-manager --set-enabled crb
   dnf -y install \
     bash \
     boost-devel \
@@ -34,6 +35,7 @@ if command -v dnf >/dev/null 2>&1; then
     gcc-c++ \
     gettext \
     glib2-devel \
+    gtest-devel \
     guile30-devel \
     libicu-devel \
     libxml2-devel \
@@ -55,6 +57,7 @@ if command -v yum >/dev/null 2>&1; then
     gcc-c++ \
     gettext \
     glib2-devel \
+    gtest-devel \
     guile30-devel \
     libicu-devel \
     libxml2-devel \
