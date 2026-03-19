@@ -76,6 +76,12 @@ gnc_add_swig_python_command (swig-app-utils-python
 
 if(WITH_PYTHON)
 
+  if (SKBUILD)
+    set(GNC_PYTHON_EXTENSION_LIBS "")
+  else()
+    set(GNC_PYTHON_EXTENSION_LIBS ${Python3_LIBRARIES})
+  endif()
+
   ### gnucash_core_c
 
   set(gnucash_core_c_INCLUDE_DIRS
@@ -91,7 +97,7 @@ if(WITH_PYTHON)
   add_library(gnucash_core_c MODULE ${SWIG_GNUCASH_CORE_C})
   target_include_directories(gnucash_core_c PRIVATE ${gnucash_core_c_INCLUDE_DIRS})
 
-  target_link_libraries(gnucash_core_c gnc-app-utils gnc-engine ${Python3_LIBRARIES})
+  target_link_libraries(gnucash_core_c gnc-app-utils gnc-engine ${GNC_PYTHON_EXTENSION_LIBS})
   set_target_properties(gnucash_core_c PROPERTIES PREFIX "_")
   target_compile_options(gnucash_core_c PRIVATE -Wno-implicit -Wno-missing-prototypes -Wno-declaration-after-statement -Wno-missing-declarations)
   if (HAVE_STRINGOP_TRUNCATION)
@@ -141,7 +147,7 @@ if(WITH_PYTHON)
 
   add_library (sw_core_utils MODULE ${SWIG_CORE_UTILS_PYTHON_C})
 
-  target_link_libraries(sw_core_utils gnc-core-utils ${Python3_LIBRARIES})
+  target_link_libraries(sw_core_utils gnc-core-utils ${GNC_PYTHON_EXTENSION_LIBS})
   set_target_properties(sw_core_utils PROPERTIES PREFIX "_")
 
   if (HAVE_STRINGOP_TRUNCATION)
@@ -155,7 +161,11 @@ if(WITH_PYTHON)
   target_compile_definitions (sw_core_utils PRIVATE -DG_LOG_DOMAIN=\"gnc.core-utils\")
 
   if (APPLE)
-    set_target_properties (sw_core_utils PROPERTIES INSTALL_NAME_DIR "${CMAKE_INSTALL_FULL_LIBDIR}/gnucash")
+    if (SKBUILD)
+      set_target_properties (sw_core_utils PROPERTIES INSTALL_NAME_DIR "@rpath")
+    else()
+      set_target_properties (sw_core_utils PROPERTIES INSTALL_NAME_DIR "${CMAKE_INSTALL_FULL_LIBDIR}/gnucash")
+    endif()
   endif()
 
   install(TARGETS sw_core_utils
@@ -175,7 +185,7 @@ if(WITH_PYTHON)
   set(PYEXEC_FILES sw_app_utils.py)
   add_library (sw_app_utils MODULE ${SWIG_APP_UTILS_PYTHON_C})
 
-  target_link_libraries(sw_app_utils gnc-app-utils ${app_utils_ALL_LIBRARIES} ${Python3_LIBRARIES})
+  target_link_libraries(sw_app_utils gnc-app-utils ${app_utils_ALL_LIBRARIES} ${GNC_PYTHON_EXTENSION_LIBS})
   set_target_properties(sw_app_utils PROPERTIES PREFIX "_")
   if (HAVE_STRINGOP_TRUNCATION)
     target_compile_options(sw_app_utils PRIVATE -Wno-error=stringop-truncation)
@@ -192,7 +202,11 @@ if(WITH_PYTHON)
   target_compile_definitions (sw_app_utils PRIVATE -DG_LOG_DOMAIN=\"gnc.app-utils\")
 
   if (APPLE)
-    set_target_properties (sw_app_utils PROPERTIES INSTALL_NAME_DIR "${CMAKE_INSTALL_FULL_LIBDIR}")
+    if (SKBUILD)
+      set_target_properties (sw_app_utils PROPERTIES INSTALL_NAME_DIR "@rpath")
+    else()
+      set_target_properties (sw_app_utils PROPERTIES INSTALL_NAME_DIR "${CMAKE_INSTALL_FULL_LIBDIR}")
+    endif()
   endif()
 
   install(TARGETS sw_app_utils

@@ -63,11 +63,11 @@ jobs:
             (echo "auditwheel failed; scanning wheel payload with readelf" &&
             tmpdir=$(mktemp -d) &&
             python3 -m zipfile -e {wheel} "$tmpdir" &&
-            find "$tmpdir" -type f \( -name '*.so' -o -name '*.so.*' \) -print0 |
-            while IFS= read -r -d '' f; do
+            find "$tmpdir" -type f \( -name '*.so' -o -name '*.so.*' \) | while IFS= read -r f; do
               readelf -S "$f" >/dev/null 2>&1 || echo "AUDITWHEEL_BAD_SECTIONS ${f#$tmpdir/}";
               readelf -d "$f" >/dev/null 2>&1 || echo "AUDITWHEEL_BAD_DYNAMIC ${f#$tmpdir/}";
-            done;
+            done &&
+            echo "AUDITWHEEL_SCAN_DONE" &&
             false))
           CIBW_BEFORE_ALL_MACOS: bash {package}/install-macos-deps.sh
           CIBW_ENVIRONMENT_MACOS: >-
