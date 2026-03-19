@@ -59,13 +59,7 @@ jobs:
           CIBW_BEFORE_ALL_LINUX: bash {package}/install-linux-deps.sh
           CIBW_REPAIR_WHEEL_COMMAND_LINUX: >-
             python3 -m pip install -q --upgrade "auditwheel>=6.1" "pyelftools>=0.31" &&
-            (python3 -m auditwheel repair -w {dest_dir} {wheel} ||
-            (echo "auditwheel failed; scanning wheel payload with pyelftools" &&
-            tmpdir=$(mktemp -d) &&
-            python3 -m zipfile -e {wheel} "$tmpdir" &&
-            python3 {package}/scan-elf-errors.py "$tmpdir" &&
-            echo "AUDITWHEEL_SCAN_DONE" &&
-            false))
+            python3 -m auditwheel repair -w {dest_dir} {wheel}
           CIBW_BEFORE_ALL_MACOS: bash {package}/install-macos-deps.sh
           CIBW_ENVIRONMENT_MACOS: >-
             CC=/usr/bin/clang
