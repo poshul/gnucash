@@ -550,7 +550,14 @@ if (WITH_PYTHON)
     # The macOS SDK-provided Python framework lacks SQLite3 support
     set(Python3_FIND_FRAMEWORK NEVER)
   endif()
-  find_package (Python3 ${PYTHON_MIN_VERSION} COMPONENTS Interpreter Development)
+  if (SKBUILD)
+    # In wheel builds we only need extension module support; the cibuildwheel
+    # managed Python may not expose a shared libpython (Development.Embed).
+    find_package (Python3 ${PYTHON_MIN_VERSION} COMPONENTS Interpreter Development.Module
+                  OPTIONAL_COMPONENTS Development.Embed)
+  else()
+    find_package (Python3 ${PYTHON_MIN_VERSION} COMPONENTS Interpreter Development)
+  endif()
   if (NOT Python3_FOUND)
     message(SEND_ERROR "Python support enabled, but Python3 interpreter and/or libaries not found.")
   endif()
