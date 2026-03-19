@@ -133,7 +133,8 @@ gulong gnc_prefs_register_cb (const char *group,
         return (prefsbackend->register_cb) (group, pref_name, func, user_data);
     else
     {
-        g_warning ("no preferences backend loaded, or the backend doesn't define register_cb, returning 0");
+        if (g_strcmp0 (g_getenv ("GNC_SUPPRESS_PREFS_WARNINGS"), "1") != 0)
+            g_warning ("no preferences backend loaded, or the backend doesn't define register_cb, returning 0");
         return 0;
     }
 }

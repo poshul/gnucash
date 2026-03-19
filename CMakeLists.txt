@@ -1,6 +1,6 @@
 # CMakeLists.txt for GnuCash
 
-cmake_minimum_required (VERSION 3.14.5)
+cmake_minimum_required (VERSION 3.15)
 
 # CMake 3.15+ Python3_FIND_STRATEGY=LOCATION
 if (POLICY CMP0094)
@@ -118,6 +118,11 @@ if (NOT DEFINED GNC_DBD_DIR)
   set(GNC_DBD_DIR $ENV{GNC_DBD_DIR} CACHE PATH "Hint for location of libdbi-drivers.")
 endif()
 set(PKGLIBDIR ${CMAKE_INSTALL_LIBDIR}/gnucash)
+
+if (SKBUILD)
+  set(CMAKE_BUILD_WITH_INSTALL_RPATH OFF)
+  set(CMAKE_INSTALL_RPATH_USE_LINK_PATH OFF)
+endif()
 
 set(DATADIR_BUILD    ${CMAKE_BINARY_DIR}/${DATADIRNAME})
 string(REPLACE ${CMAKE_INSTALL_PREFIX} "" LIBDIR_BUILD ${LIBDIR})
@@ -544,22 +549,43 @@ if (WITH_PYTHON)
     # The macOS SDK-provided Python framework lacks SQLite3 support
     set(Python3_FIND_FRAMEWORK NEVER)
   endif()
-  find_package (Python3 ${PYTHON_MIN_VERSION} COMPONENTS Interpreter Development)
+  if (SKBUILD)
+    # In wheel builds we only need extension module support; the cibuildwheel
+    # managed Python may not expose a shared libpython (Development.Embed).
+    find_package (Python3 ${PYTHON_MIN_VERSION} COMPONENTS Interpreter Development.Module
+                  OPTIONAL_COMPONENTS Development.Embed)
+    # Extension modules don't link against libpython — clear the NOTFOUND
+    # variables so CMake doesn't error on targets that reference them.
+    if (NOT Python3_LIBRARY)
+      set(Python3_LIBRARY "" CACHE FILEPATH "" FORCE)
+    endif()
+    if (NOT Python3_LIBRARIES)
+      set(Python3_LIBRARIES "" CACHE STRING "" FORCE)
+    endif()
+  else()
+    find_package (Python3 ${PYTHON_MIN_VERSION} COMPONENTS Interpreter Development)
+  endif()
   if (NOT Python3_FOUND)
     message(SEND_ERROR "Python support enabled, but Python3 interpreter and/or libaries not found.")
   endif()
 
   # Determine where to install the python libraries.
-  execute_process(
-    COMMAND ${Python3_EXECUTABLE} -c "from sysconfig import get_path; print(get_path('platlib', 'posix_prefix', {'platbase': '${CMAKE_INSTALL_PREFIX}'}))"
-    RESULT_VARIABLE PYTHON_SYSCONFIG_RESULT
-    OUTPUT_VARIABLE PYTHON_SYSCONFIG_OUTPUT
-    ERROR_VARIABLE PYTHON_SYSCONFIG_ERROR
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-    ERROR_STRIP_TRAILING_WHITESPACE
-  )
-  if (PYTHON_SYSCONFIG_RESULT)
-    message(SEND_ERROR "Could not determine Python site-package directory:\n${PYTHON_SYSCONFIG_ERROR}")
+  # In scikit-build wheel builds CMAKE_INSTALL_PREFIX already points to the
+  # wheel platlib directory, so install Python modules directly there.
+  if (SKBUILD)
+    set(PYTHON_SYSCONFIG_OUTPUT ${CMAKE_INSTALL_PREFIX})
+  else()
+    execute_process(
+      COMMAND ${Python3_EXECUTABLE} -c "from sysconfig import get_path; print(get_path('platlib', 'posix_prefix', {'platbase': '${CMAKE_INSTALL_PREFIX}'}))"
+      RESULT_VARIABLE PYTHON_SYSCONFIG_RESULT
+      OUTPUT_VARIABLE PYTHON_SYSCONFIG_OUTPUT
+      ERROR_VARIABLE PYTHON_SYSCONFIG_ERROR
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+      ERROR_STRIP_TRAILING_WHITESPACE
+    )
+    if (PYTHON_SYSCONFIG_RESULT)
+      message(SEND_ERROR "Could not determine Python site-package directory:\n${PYTHON_SYSCONFIG_ERROR}")
+    endif()
   endif()
   string(REPLACE ${CMAKE_INSTALL_PREFIX} ${CMAKE_BINARY_DIR} PYTHON_SYSCONFIG_BUILD ${PYTHON_SYSCONFIG_OUTPUT})
 endif()
@@ -642,6 +668,10 @@ if (UNIX)
   set( CMAKE_CXX_FLAGS "-Werror -Wall -Wmissing-declarations ${CMAKE_CXX_FLAGS}")
   set( CMAKE_C_FLAGS_RELEASE "-O3 -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2 ${CMAKE_C_FLAGS}")
 endif()
+if (APPLE AND SKBUILD)
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error=deprecated-declarations")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=deprecated-declarations")
+endif()
 if (MINGW)
   set( CMAKE_C_FLAGS "-Werror -Wall -Wmissing-prototypes -Wmissing-declarations ${CMAKE_C_FLAGS}")
   set( CMAKE_CXX_FLAGS "-DWINVER=0x0500 -D_EMULATE_GLIBC=0 ${CMAKE_CXX_FLAGS}") # Workaround for bug in gtest on mingw, see https://github.com/google/googletest/issues/893 and https://github.com/google/googletest/issues/920
@@ -690,13 +720,24 @@ if (UNIX AND NOT APPLE)
   string(REPLACE ";" ":" ASAN_TEST_OPTIONS "${ASAN_TEST_OPTIONS}")
 endif()
 
-if (APPLE AND WITH_GNUCASH)
+if (APPLE AND WITH_GNUCASH AND NOT SKBUILD)
   set(CMAKE_MACOSX_RPATH ON)
   set(CMAKE_INSTALL_NAME_DIR "${CMAKE_INSTALL_FULL_LIBDIR}")
 endif()
 
 if (UNIX)
-  set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_FULL_LIBDIR}:${CMAKE_INSTALL_FULL_LIBDIR}/gnucash")
+  if (SKBUILD)
+    if (APPLE)
+      set(CMAKE_MACOSX_RPATH ON)
+      set(CMAKE_INSTALL_NAME_DIR "@rpath")
+      set(CMAKE_INSTALL_RPATH "@loader_path;@loader_path/../lib;@loader_path/../../lib;@loader_path/gnucash")
+    else()
+      set(CMAKE_INSTALL_RPATH "$ORIGIN;$ORIGIN/../lib;$ORIGIN/../../lib;$ORIGIN/gnucash")
+    endif()
+    set(CMAKE_INSTALL_RPATH_USE_LINK_PATH OFF)
+  else()
+    set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_FULL_LIBDIR}:${CMAKE_INSTALL_FULL_LIBDIR}/gnucash")
+  endif()
 endif()
 
 set(BUILD_SHARED_LIBS ON)

@@ -20,7 +20,11 @@ target_include_directories(gnc-locale-tax
         ${GUILE_INCLUDE_DIRS})
 
 if (APPLE)
-  set_target_properties (gnc-locale-tax PROPERTIES INSTALL_NAME_DIR "${CMAKE_INSTALL_FULL_LIBDIR}")
+    if (SKBUILD)
+        set_target_properties (gnc-locale-tax PROPERTIES INSTALL_NAME_DIR "@rpath")
+    else()
+        set_target_properties (gnc-locale-tax PROPERTIES INSTALL_NAME_DIR "${CMAKE_INSTALL_FULL_LIBDIR}")
+    endif()
 endif()
 
 if (COVERAGE)

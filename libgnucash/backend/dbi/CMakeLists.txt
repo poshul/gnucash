@@ -40,7 +40,11 @@ if (WITH_SQL)
   target_include_directories(gncmod-backend-dbi PRIVATE ${LIBDBI_INCLUDE_PATH})
 
   if (APPLE)
-    set_target_properties (gncmod-backend-dbi PROPERTIES INSTALL_NAME_DIR "${CMAKE_INSTALL_FULL_LIBDIR}/gnucash")
+    if (SKBUILD)
+      set_target_properties (gncmod-backend-dbi PROPERTIES INSTALL_NAME_DIR "@rpath")
+    else()
+      set_target_properties (gncmod-backend-dbi PROPERTIES INSTALL_NAME_DIR "${CMAKE_INSTALL_FULL_LIBDIR}/gnucash")
+    endif()
   endif()
 
   if (COVERAGE)

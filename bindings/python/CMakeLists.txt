@@ -3,6 +3,18 @@ add_subdirectory(tests)
 
 set(PYEXEC_FILES  __init__.py function_class.py gnucash_business.py gnucash_core.py app_utils.py deprecation.py)
 
+if (SKBUILD)
+  set(GNC_PY_WHEEL_MODE True)
+else()
+  set(GNC_PY_WHEEL_MODE False)
+endif()
+
+configure_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/_build_config.py.in
+  ${CMAKE_CURRENT_BINARY_DIR}/_build_config.py
+  @ONLY
+)
+
 set(SWIG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/gnucash_core.i ${CMAKE_CURRENT_SOURCE_DIR}/time64.i)
 set(GNUCASH_CORE_C_INCLUDES
     ${CONFIG_H}
@@ -85,6 +97,11 @@ if(WITH_PYTHON)
   if (HAVE_STRINGOP_TRUNCATION)
     target_compile_options(gnucash_core_c PRIVATE -Wno-error=stringop-truncation)
   endif()
+  
+  # Use dynamic lookup for extension modules to prevent delocate from bundling Python
+  if (SKBUILD AND APPLE)
+    target_link_options(gnucash_core_c PRIVATE -undefined dynamic_lookup)
+  endif()
 
   add_executable(sqlite3test EXCLUDE_FROM_ALL sqlite3test.c ${SWIG_GNUCASH_CORE_C})
   target_link_libraries(sqlite3test gnc-app-utils gnc-engine ${Python3_LIBRARIES})
@@ -102,8 +119,14 @@ if(WITH_PYTHON)
     LIBRARY DESTINATION ${PYTHON_SYSCONFIG_OUTPUT}/gnucash
     ARCHIVE DESTINATION ${PYTHON_SYSCONFIG_OUTPUT}/gnucash
   )
-  install(FILES ${PYEXEC_FILES} ${SWIG_GNUCASH_CORE_PY}
+  install(FILES ${PYEXEC_FILES} ${SWIG_GNUCASH_CORE_PY} ${CMAKE_CURRENT_BINARY_DIR}/_build_config.py
     DESTINATION ${PYTHON_SYSCONFIG_OUTPUT}/gnucash
+  )
+
+  configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/_build_config.py.in
+    ${PYTHON_SYSCONFIG_BUILD}/gnucash/_build_config.py
+    @ONLY
   )
 
   foreach(PYEXEC_FILE ${PYEXEC_FILES})
@@ -129,6 +152,11 @@ if(WITH_PYTHON)
   if (HAVE_STRINGOP_TRUNCATION)
     target_compile_options(sw_core_utils PRIVATE -Wno-error=stringop-truncation)
   endif()
+  
+  # Use dynamic lookup for extension modules to prevent delocate from bundling Python
+  if (SKBUILD AND APPLE)
+    target_link_options(sw_core_utils PRIVATE -undefined dynamic_lookup)
+  endif()
 
   target_include_directories (sw_core_utils
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
@@ -137,7 +165,11 @@ if(WITH_PYTHON)
   target_compile_definitions (sw_core_utils PRIVATE -DG_LOG_DOMAIN=\"gnc.core-utils\")
 
   if (APPLE)
-    set_target_properties (sw_core_utils PROPERTIES INSTALL_NAME_DIR "${CMAKE_INSTALL_FULL_LIBDIR}/gnucash")
+    if (SKBUILD)
+      set_target_properties (sw_core_utils PROPERTIES INSTALL_NAME_DIR "@rpath")
+    else()
+      set_target_properties (sw_core_utils PROPERTIES INSTALL_NAME_DIR "${CMAKE_INSTALL_FULL_LIBDIR}/gnucash")
+    endif()
   endif()
 
   install(TARGETS sw_core_utils
@@ -162,6 +194,11 @@ if(WITH_PYTHON)
   if (HAVE_STRINGOP_TRUNCATION)
     target_compile_options(sw_app_utils PRIVATE -Wno-error=stringop-truncation)
   endif()
+  
+  # Use dynamic lookup for extension modules to prevent delocate from bundling Python
+  if (SKBUILD AND APPLE)
+    target_link_options(sw_app_utils PRIVATE -undefined dynamic_lookup)
+  endif()
 
   add_custom_target(sw-app-utils-py ALL
           COMMAND ${CMAKE_COMMAND} -E copy ${SWIG_APP_UTILS_PYTHON_PY} ${PYTHON_SYSCONFIG_BUILD}/gnucash
@@ -174,7 +211,11 @@ if(WITH_PYTHON)
   target_compile_definitions (sw_app_utils PRIVATE -DG_LOG_DOMAIN=\"gnc.app-utils\")
 
   if (APPLE)
-    set_target_properties (sw_app_utils PROPERTIES INSTALL_NAME_DIR "${CMAKE_INSTALL_FULL_LIBDIR}")
+    if (SKBUILD)
+      set_target_properties (sw_app_utils PROPERTIES INSTALL_NAME_DIR "@rpath")
+    else()
+      set_target_properties (sw_app_utils PROPERTIES INSTALL_NAME_DIR "${CMAKE_INSTALL_FULL_LIBDIR}")
+    endif()
   endif()
 
   install(TARGETS sw_app_utils
@@ -189,6 +230,7 @@ if(WITH_PYTHON)
 endif()
 
 set(python_bindings_DATA
+  _build_config.py.in
   app_utils.py
   deprecation.py
   function_class.py

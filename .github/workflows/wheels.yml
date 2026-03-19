@@ -1,0 +1,82 @@
+name: wheels
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - stable
+    paths:
+      - '.github/workflows/wheels.yml'
+      - 'packaging/python-wheel/**'
+      - 'bindings/python/**'
+      - 'bindings/**'
+      - 'libgnucash/**'
+      - 'common/**'
+      - 'CMakeLists.txt'
+  pull_request:
+    paths:
+      - '.github/workflows/wheels.yml'
+      - 'packaging/python-wheel/**'
+      - 'bindings/python/**'
+      - 'bindings/**'
+      - 'libgnucash/**'
+      - 'common/**'
+      - 'CMakeLists.txt'
+
+permissions: {}
+
+jobs:
+  build_wheels:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+          - os: macos-15-intel    # Intel — builds x86_64 wheels natively
+            cibw_archs_macos: x86_64
+          - os: macos-15    # Apple Silicon — builds arm64 wheels natively
+            cibw_archs_macos: arm64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        if: startsWith(matrix.os, 'ubuntu')
+        uses: docker/setup-qemu-action@v3
+
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.23.3
+        env:
+          CIBW_BUILD: cp310-* cp311-* cp312-* cp313-* cp314-*
+          CIBW_SKIP: "*-musllinux_*"
+          CIBW_ARCHS_LINUX: x86_64 aarch64
+          CIBW_ARCHS_MACOS: ${{ matrix.cibw_archs_macos }}
+          CIBW_MANYLINUX_X86_64_IMAGE: quay.io/pypa/manylinux_2_34_x86_64
+          CIBW_MANYLINUX_AARCH64_IMAGE: quay.io/pypa/manylinux_2_34_aarch64
+          CIBW_BEFORE_ALL_LINUX: bash {package}/install-linux-deps.sh
+          CIBW_REPAIR_WHEEL_COMMAND_LINUX: >-
+            python3 -m pip install -q --upgrade "auditwheel>=6.1" "pyelftools>=0.31" &&
+            python3 -m auditwheel repair -w {dest_dir} {wheel}
+          CIBW_BEFORE_ALL_MACOS: bash {package}/install-macos-deps.sh
+          CIBW_ENVIRONMENT_MACOS: >-
+            CC=/usr/bin/clang
+            CXX=/usr/bin/clang++
+            MACOSX_DEPLOYMENT_TARGET=15.0
+            CMAKE_OSX_DEPLOYMENT_TARGET=15.0
+            ICU_ROOT=$(brew --prefix icu4c)
+            CFLAGS="-I$(brew --prefix icu4c)/include $CFLAGS"
+            CXXFLAGS="-I$(brew --prefix icu4c)/include $CXXFLAGS"
+          CIBW_TEST_COMMAND: >-
+            python -c "import os,tempfile; os.chdir(tempfile.gettempdir()); import gnucash; print('ok', gnucash.__file__)"
+          CIBW_BUILD_FRONTEND: build
+        with:
+          package-dir: packaging/python-wheel
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.os }}
+          path: wheelhouse/*.whl

@@ -83,7 +83,11 @@ target_include_directories (gnc-app-utils
 target_compile_definitions (gnc-app-utils PRIVATE -DG_LOG_DOMAIN=\"gnc.app-utils\")
 
 if (APPLE)
-  set_target_properties (gnc-app-utils PROPERTIES INSTALL_NAME_DIR "${CMAKE_INSTALL_FULL_LIBDIR}")
+        if (SKBUILD)
+                set_target_properties (gnc-app-utils PROPERTIES INSTALL_NAME_DIR "@rpath")
+        else()
+                set_target_properties (gnc-app-utils PROPERTIES INSTALL_NAME_DIR "${CMAKE_INSTALL_FULL_LIBDIR}")
+        endif()
 endif()
 
 if (COVERAGE)

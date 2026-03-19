@@ -1,6 +1,6 @@
 # Post install actions go here.
 
-if (APPLE)
+if (APPLE AND WITH_GNUCASH)
   install(CODE "execute_process(
                 COMMAND /usr/bin/install_name_tool -add_rpath ${CMAKE_INSTALL_LIBDIR}
                                                    -add_rpath ${PKGLIBDIR}
