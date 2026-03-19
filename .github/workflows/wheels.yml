@@ -59,7 +59,16 @@ jobs:
           CIBW_BEFORE_ALL_LINUX: bash {package}/install-linux-deps.sh
           CIBW_REPAIR_WHEEL_COMMAND_LINUX: >-
             python3 -m pip install -q --upgrade "auditwheel>=6.1" "pyelftools>=0.31" &&
-            python3 -m auditwheel repair -w {dest_dir} {wheel}
+            (python3 -m auditwheel repair -w {dest_dir} {wheel} ||
+            (echo "auditwheel failed; scanning wheel payload with readelf" &&
+            tmpdir=$(mktemp -d) &&
+            python3 -m zipfile -e {wheel} "$tmpdir" &&
+            find "$tmpdir" -type f \( -name '*.so' -o -name '*.so.*' \) -print0 |
+            while IFS= read -r -d '' f; do
+              readelf -S "$f" >/dev/null 2>&1 || echo "AUDITWHEEL_BAD_SECTIONS ${f#$tmpdir/}";
+              readelf -d "$f" >/dev/null 2>&1 || echo "AUDITWHEEL_BAD_DYNAMIC ${f#$tmpdir/}";
+            done;
+            false))
           CIBW_BEFORE_ALL_MACOS: bash {package}/install-macos-deps.sh
           CIBW_ENVIRONMENT_MACOS: >-
             CC=/usr/bin/clang
@@ -69,7 +78,8 @@ jobs:
             ICU_ROOT=$(brew --prefix icu4c)
             CFLAGS="-I$(brew --prefix icu4c)/include $CFLAGS"
             CXXFLAGS="-I$(brew --prefix icu4c)/include $CXXFLAGS"
-          CIBW_TEST_COMMAND: python -c "import gnucash; print('ok')"
+          CIBW_TEST_COMMAND: >-
+            python -c "import os,tempfile; os.chdir(tempfile.gettempdir()); import gnucash; print('ok', gnucash.__file__)"
           CIBW_BUILD_FRONTEND: build
         with:
           package-dir: packaging/python-wheel
