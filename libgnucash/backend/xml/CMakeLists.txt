@@ -121,7 +121,11 @@ endif()
 
 
 if (APPLE)
-  set_target_properties (gncmod-backend-xml PROPERTIES INSTALL_NAME_DIR "${CMAKE_INSTALL_FULL_LIBDIR}")
+  if (SKBUILD)
+    set_target_properties (gncmod-backend-xml PROPERTIES INSTALL_NAME_DIR "@rpath")
+  else()
+    set_target_properties (gncmod-backend-xml PROPERTIES INSTALL_NAME_DIR "${CMAKE_INSTALL_FULL_LIBDIR}")
+  endif()
 endif()
 
 if (COVERAGE)

@@ -25,6 +25,7 @@ if command -v apt-get >/dev/null 2>&1; then
 fi
 
 if command -v dnf >/dev/null 2>&1; then
+  dnf -y install dnf-plugins-core
   dnf -y install epel-release
   dnf config-manager --set-enabled crb
   dnf -y install \
