@@ -25,6 +25,7 @@ if command -v apt-get >/dev/null 2>&1; then
 fi
 
 if command -v dnf >/dev/null 2>&1; then
+  dnf -y install epel-release
   dnf -y install \
     bash \
     boost-devel \

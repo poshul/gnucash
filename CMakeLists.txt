@@ -1,6 +1,6 @@
 # CMakeLists.txt for GnuCash
 
-cmake_minimum_required (VERSION 3.14.5)
+cmake_minimum_required (VERSION 3.15)
 
 # CMake 3.15+ Python3_FIND_STRATEGY=LOCATION
 if (POLICY CMP0094)
