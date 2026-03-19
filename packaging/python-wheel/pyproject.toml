@@ -1,0 +1,44 @@
+[build-system]
+requires = [
+  "scikit-build-core>=0.10",
+  "cmake>=3.22",
+  "ninja>=1.10",
+]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "gnucash-bindings"
+version = "5.14.0"
+description = "GnuCash Python bindings built from the GnuCash source tree"
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "GPL-2.0-or-later" }
+authors = [
+  { name = "GnuCash Developers" }
+]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: C",
+  "Programming Language :: C++",
+  "Operating System :: POSIX :: Linux",
+  "Operating System :: MacOS",
+  "License :: OSI Approved :: GNU General Public License v2 or later (GPLv2+)"
+]
+
+[tool.scikit-build]
+cmake.source-dir = "../.."
+cmake.args = [
+  "-DWITH_PYTHON=ON",
+  "-DWITH_GNUCASH=OFF",
+  "-DWITH_SQL=OFF",
+  "-DWITH_AQBANKING=OFF",
+  "-DWITH_OFX=OFF"
+]
+
+[tool.scikit-build.wheel]
+packages = []
+exclude = [
+  "include/**",
+  "share/doc/**",
+  "share/man/**"
+]

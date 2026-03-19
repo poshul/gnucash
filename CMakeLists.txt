@@ -119,6 +119,12 @@ if (NOT DEFINED GNC_DBD_DIR)
 endif()
 set(PKGLIBDIR ${CMAKE_INSTALL_LIBDIR}/gnucash)
 
+if (SKBUILD)
+  set(CMAKE_BUILD_WITH_INSTALL_RPATH OFF)
+  set(CMAKE_INSTALL_RPATH "$ORIGIN;$ORIGIN/../lib;$ORIGIN/../../lib;$ORIGIN/gnucash")
+  set(CMAKE_INSTALL_RPATH_USE_LINK_PATH OFF)
+endif()
+
 set(DATADIR_BUILD    ${CMAKE_BINARY_DIR}/${DATADIRNAME})
 string(REPLACE ${CMAKE_INSTALL_PREFIX} "" LIBDIR_BUILD ${LIBDIR})
 set(LIBDIR_BUILD     ${CMAKE_BINARY_DIR}/${LIBDIR_BUILD})
@@ -550,16 +556,22 @@ if (WITH_PYTHON)
   endif()
 
   # Determine where to install the python libraries.
-  execute_process(
-    COMMAND ${Python3_EXECUTABLE} -c "from sysconfig import get_path; print(get_path('platlib', 'posix_prefix', {'platbase': '${CMAKE_INSTALL_PREFIX}'}))"
-    RESULT_VARIABLE PYTHON_SYSCONFIG_RESULT
-    OUTPUT_VARIABLE PYTHON_SYSCONFIG_OUTPUT
-    ERROR_VARIABLE PYTHON_SYSCONFIG_ERROR
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-    ERROR_STRIP_TRAILING_WHITESPACE
-  )
-  if (PYTHON_SYSCONFIG_RESULT)
-    message(SEND_ERROR "Could not determine Python site-package directory:\n${PYTHON_SYSCONFIG_ERROR}")
+  # In scikit-build wheel builds CMAKE_INSTALL_PREFIX already points to the
+  # wheel platlib directory, so install Python modules directly there.
+  if (SKBUILD)
+    set(PYTHON_SYSCONFIG_OUTPUT ${CMAKE_INSTALL_PREFIX})
+  else()
+    execute_process(
+      COMMAND ${Python3_EXECUTABLE} -c "from sysconfig import get_path; print(get_path('platlib', 'posix_prefix', {'platbase': '${CMAKE_INSTALL_PREFIX}'}))"
+      RESULT_VARIABLE PYTHON_SYSCONFIG_RESULT
+      OUTPUT_VARIABLE PYTHON_SYSCONFIG_OUTPUT
+      ERROR_VARIABLE PYTHON_SYSCONFIG_ERROR
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+      ERROR_STRIP_TRAILING_WHITESPACE
+    )
+    if (PYTHON_SYSCONFIG_RESULT)
+      message(SEND_ERROR "Could not determine Python site-package directory:\n${PYTHON_SYSCONFIG_ERROR}")
+    endif()
   endif()
   string(REPLACE ${CMAKE_INSTALL_PREFIX} ${CMAKE_BINARY_DIR} PYTHON_SYSCONFIG_BUILD ${PYTHON_SYSCONFIG_OUTPUT})
 endif()
@@ -696,7 +708,12 @@ if (APPLE AND WITH_GNUCASH)
 endif()
 
 if (UNIX)
-  set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_FULL_LIBDIR}:${CMAKE_INSTALL_FULL_LIBDIR}/gnucash")
+  if (SKBUILD)
+    set(CMAKE_INSTALL_RPATH "$ORIGIN;$ORIGIN/../lib;$ORIGIN/../../lib;$ORIGIN/gnucash")
+    set(CMAKE_INSTALL_RPATH_USE_LINK_PATH OFF)
+  else()
+    set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_FULL_LIBDIR}:${CMAKE_INSTALL_FULL_LIBDIR}/gnucash")
+  endif()
 endif()
 
 set(BUILD_SHARED_LIBS ON)

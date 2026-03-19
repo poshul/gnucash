@@ -3,6 +3,18 @@ add_subdirectory(tests)
 
 set(PYEXEC_FILES  __init__.py function_class.py gnucash_business.py gnucash_core.py app_utils.py deprecation.py)
 
+if (SKBUILD)
+  set(GNC_PY_WHEEL_MODE True)
+else()
+  set(GNC_PY_WHEEL_MODE False)
+endif()
+
+configure_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/_build_config.py.in
+  ${CMAKE_CURRENT_BINARY_DIR}/_build_config.py
+  @ONLY
+)
+
 set(SWIG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/gnucash_core.i ${CMAKE_CURRENT_SOURCE_DIR}/time64.i)
 set(GNUCASH_CORE_C_INCLUDES
     ${CONFIG_H}
@@ -102,8 +114,14 @@ if(WITH_PYTHON)
     LIBRARY DESTINATION ${PYTHON_SYSCONFIG_OUTPUT}/gnucash
     ARCHIVE DESTINATION ${PYTHON_SYSCONFIG_OUTPUT}/gnucash
   )
-  install(FILES ${PYEXEC_FILES} ${SWIG_GNUCASH_CORE_PY}
+  install(FILES ${PYEXEC_FILES} ${SWIG_GNUCASH_CORE_PY} ${CMAKE_CURRENT_BINARY_DIR}/_build_config.py
     DESTINATION ${PYTHON_SYSCONFIG_OUTPUT}/gnucash
+  )
+
+  configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/_build_config.py.in
+    ${PYTHON_SYSCONFIG_BUILD}/gnucash/_build_config.py
+    @ONLY
   )
 
   foreach(PYEXEC_FILE ${PYEXEC_FILES})
@@ -189,6 +207,7 @@ if(WITH_PYTHON)
 endif()
 
 set(python_bindings_DATA
+  _build_config.py.in
   app_utils.py
   deprecation.py
   function_class.py
